@@ -3,6 +3,29 @@ import 'package:http/http.dart' as http;
 import '../models/prayer_day.dart';
 
 class PrayerApiService {
+  Future<String> fetchRawMonthlyPrayerResponse({
+    required double latitude,
+    required double longitude,
+    required int month,
+    required int year,
+  }) async {
+    final uri = Uri.https(
+      'api.aladhan.com',
+      '/v1/calendar',
+      {
+        'latitude': latitude.toString(),
+        'longitude': longitude.toString(),
+        'method': '20',
+        'school': '0',
+        'month': month.toString(),
+        'year': year.toString(),
+      },
+    );
+
+    final response = await http.get(uri);
+
+    return response.body;
+  }
   Future<List<PrayerDay>> fetchMonthlyPrayerTimes({
     required double latitude,
     required double longitude,

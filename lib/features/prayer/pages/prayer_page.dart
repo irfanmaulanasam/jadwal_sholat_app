@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:jadwal_sholat_app/features/prayer/pages/tavel_page.dart';
 
 import '../models/prayer_day.dart';
 import '../models/prayer_settings.dart';
@@ -26,6 +27,39 @@ class _PrayerPageState extends State<PrayerPage> {
   PrayerSettings? _settings;
   List<PrayerDay> _days = [];
 
+  String _todayTitle() {
+    final now = DateTime.now();
+
+    const days = [
+      'Senin',
+      'Selasa',
+      'Rabu',
+      'Kamis',
+      'Jumat',
+      'Sabtu',
+      'Minggu',
+    ];
+
+    const months = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+
+    final dayName = days[now.weekday - 1];
+    final monthName = months[now.month - 1];
+
+    return '$dayName, ${now.day} $monthName ${now.year}';
+  }
   @override
   void initState() {
     super.initState();
@@ -130,6 +164,81 @@ class _PrayerPageState extends State<PrayerPage> {
         title: const Text('Jadwal Sholat'),
         actions: [
           IconButton(
+            tooltip: 'Mode perjalanan',
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const TravelPage(),
+                ),
+              );
+
+              setState(() {
+                _loading = true;
+                _error = null;
+              });
+
+              await _loadPrayerTimes();
+            },
+            icon: const Icon(Icons.travel_explore),
+          ),
+          IconButton(
+            tooltip: 'Lihat response API',
+            onPressed: () async {
+              final settings = await _settingsService.load();
+              final lat = settings.activeLatitude;
+              final lng = settings.activeLongitude;
+
+              if (lat == null || lng == null) return;
+
+              final now = DateTime.now();
+
+              final raw = await _apiService.fetchRawMonthlyPrayerResponse(
+                latitude: lat,
+                longitude: lng,
+                month: now.month,
+                year: now.year,
+              );
+
+              if (!context.mounted) return;
+
+              showDialog(
+                context: context,
+                builder: (_) {
+                  return AlertDialog(
+                    title: const Text('Raw API Response'),
+                    content: SingleChildScrollView(
+                      child: SelectableText(raw),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Tutup'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+            icon: const Icon(Icons.data_object),
+          ),
+          IconButton(
+            tooltip: 'Test notifikasi langsung',
+            onPressed: () async {
+              await _notificationService.showInstantTestNotification();
+            },
+            icon: const Icon(Icons.notifications_active),
+          ),
+
+          IconButton(
+            tooltip: 'Test notifikasi 10 detik',
+            onPressed: () async {
+              await _notificationService.showTestNotificationInSeconds(seconds: 10);
+            },
+            icon: const Icon(Icons.timer),
+          ),
+          IconButton(
+            tooltip: 'Refresh',
             onPressed: () async {
               setState(() {
                 _loading = true;
@@ -165,7 +274,8 @@ class _PrayerPageState extends State<PrayerPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _settings?.activeLocationLabel ?? 'Lokasi aktif',
+                      _todayTitle(),
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 12),
                     _PrayerTile(name: 'Subuh', time: today.fajr),
@@ -177,6 +287,28 @@ class _PrayerPageState extends State<PrayerPage> {
                     _PrayerTile(name: 'Ashar', time: today.asr),
                     _PrayerTile(name: 'Maghrib', time: today.maghrib),
                     _PrayerTile(name: 'Isya', time: today.isha),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Jadwal untuk:',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    Text(
+                      _settings?.activeLocationInfo ?? '-',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Sumber jadwal: AlAdhan Prayer Times API',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    const Text(
+                      'Metode: koordinat lokasi aktif',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    const SizedBox(height: 12),
                   ],
                 ),
     );

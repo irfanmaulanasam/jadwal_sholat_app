@@ -88,6 +88,48 @@ class PrayerNotificationService {
     return 10;
   }
 
+  Future<void> showTestNotificationInSeconds({
+    required int seconds,
+  }) async {
+    final scheduledTime = DateTime.now().add(
+      Duration(seconds: seconds),
+    );
+
+    await _plugin.zonedSchedule(
+      999,
+      'Test Notifikasi',
+      'Ini test notifikasi $seconds detik',
+      tz.TZDateTime.from(scheduledTime, tz.local),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'debug_channel',
+          'Debug Notification',
+          channelDescription: 'Channel untuk test notifikasi',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+  Future<void> showInstantTestNotification() async {
+    await _plugin.show(
+      998,
+      'Test Notifikasi Langsung',
+      'Kalau ini muncul, berarti permission dan channel aman.',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'debug_channel',
+          'Debug Notification',
+          channelDescription: 'Channel untuk test notifikasi',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+      ),
+    );
+  }
   Future<void> _schedule({
     required int id,
     required String name,

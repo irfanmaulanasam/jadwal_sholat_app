@@ -55,6 +55,21 @@ class PrayerSettings {
     return 'Lokasi utama';
   }
 
+  String get activeLocationInfo {
+    final lat = activeLatitude;
+    final lng = activeLongitude;
+
+    if (lat == null || lng == null) {
+      return 'Lokasi belum tersedia';
+    }
+
+    if (travelMode && travelCityName != null) {
+      return '$travelCityName (${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)})';
+    }
+
+    return 'Lokasi utama (${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)})';
+  }
+
   PrayerSettings copyWith({
     bool? onboardingDone,
     bool? isMale,
