@@ -35,6 +35,8 @@ class _PrayerOnboardingPageState extends State<PrayerOnboardingPage> {
           travelCityName: null,
           travelLatitude: null,
           travelLongitude: null,
+          locationName: 'Cianjur',
+          minuteOffset: 3,
         ),
       );
 

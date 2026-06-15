@@ -10,6 +10,9 @@ class PrayerSettings {
   final double? travelLatitude;
   final double? travelLongitude;
 
+  final String locationName;
+  final int minuteOffset;
+
   const PrayerSettings({
     required this.onboardingDone,
     required this.isMale,
@@ -19,6 +22,8 @@ class PrayerSettings {
     required this.travelCityName,
     required this.travelLatitude,
     required this.travelLongitude,
+    required this.locationName,
+    required this.minuteOffset,
   });
 
   factory PrayerSettings.defaultValue() {
@@ -31,6 +36,8 @@ class PrayerSettings {
       travelCityName: null,
       travelLatitude: null,
       travelLongitude: null,
+      locationName: 'Cianjur',
+      minuteOffset: 3,
     );
   }
 
@@ -38,6 +45,7 @@ class PrayerSettings {
     if (travelMode && travelLatitude != null) {
       return travelLatitude;
     }
+
     return homeLatitude;
   }
 
@@ -45,29 +53,16 @@ class PrayerSettings {
     if (travelMode && travelLongitude != null) {
       return travelLongitude;
     }
+
     return homeLongitude;
   }
 
-  String get activeLocationLabel {
-    if (travelMode && travelCityName != null) {
-      return travelCityName!;
-    }
-    return 'Lokasi utama';
-  }
-
   String get activeLocationInfo {
-    final lat = activeLatitude;
-    final lng = activeLongitude;
-
-    if (lat == null || lng == null) {
-      return 'Lokasi belum tersedia';
-    }
-
     if (travelMode && travelCityName != null) {
-      return '$travelCityName (${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)})';
+      return '$travelCityName, penyesuaian $minuteOffset menit';
     }
 
-    return 'Lokasi utama (${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)})';
+    return '$locationName, penyesuaian $minuteOffset menit';
   }
 
   PrayerSettings copyWith({
@@ -79,6 +74,8 @@ class PrayerSettings {
     String? travelCityName,
     double? travelLatitude,
     double? travelLongitude,
+    String? locationName,
+    int? minuteOffset,
   }) {
     return PrayerSettings(
       onboardingDone: onboardingDone ?? this.onboardingDone,
@@ -89,6 +86,8 @@ class PrayerSettings {
       travelCityName: travelCityName ?? this.travelCityName,
       travelLatitude: travelLatitude ?? this.travelLatitude,
       travelLongitude: travelLongitude ?? this.travelLongitude,
+      locationName: locationName ?? this.locationName,
+      minuteOffset: minuteOffset ?? this.minuteOffset,
     );
   }
 }

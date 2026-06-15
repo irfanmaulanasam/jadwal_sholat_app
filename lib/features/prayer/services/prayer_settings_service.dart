@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/prayer_settings.dart';
 
 class PrayerSettingsService {
@@ -8,12 +9,17 @@ class PrayerSettingsService {
     return PrayerSettings(
       onboardingDone: prefs.getBool('onboardingDone') ?? false,
       isMale: prefs.getBool('isMale') ?? true,
+
       homeLatitude: prefs.getDouble('homeLatitude'),
       homeLongitude: prefs.getDouble('homeLongitude'),
+
       travelMode: prefs.getBool('travelMode') ?? false,
       travelCityName: prefs.getString('travelCityName'),
       travelLatitude: prefs.getDouble('travelLatitude'),
       travelLongitude: prefs.getDouble('travelLongitude'),
+
+      locationName: prefs.getString('locationName') ?? 'Cianjur',
+      minuteOffset: prefs.getInt('minuteOffset') ?? 3,
     );
   }
 
@@ -44,10 +50,18 @@ class PrayerSettingsService {
     if (settings.travelLongitude != null) {
       await prefs.setDouble('travelLongitude', settings.travelLongitude!);
     }
+
+    await prefs.setString('locationName', settings.locationName);
+    await prefs.setInt('minuteOffset', settings.minuteOffset);
   }
 
   Future<void> disableTravelMode() async {
     final current = await load();
-    await save(current.copyWith(travelMode: false));
+
+    await save(
+      current.copyWith(
+        travelMode: false,
+      ),
+    );
   }
 }
