@@ -20,10 +20,13 @@ class PrayerNotificationService {
 
     await _plugin.initialize(settings);
 
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
+    final androidPlugin =
+        _plugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+
+    await androidPlugin?.requestNotificationsPermission();
+
+    await androidPlugin?.requestExactAlarmsPermission();
   }
 
   Future<void> scheduleToday({
@@ -97,8 +100,8 @@ class PrayerNotificationService {
 
     await _plugin.zonedSchedule(
       999,
-      'Test Notifikasi',
-      'Ini test notifikasi $seconds detik',
+      'Test Scheduled Notification',
+      'Kalau ini muncul, scheduled notification sudah jalan.',
       tz.TZDateTime.from(scheduledTime, tz.local),
       const NotificationDetails(
         android: AndroidNotificationDetails(
@@ -109,11 +112,12 @@ class PrayerNotificationService {
           priority: Priority.high,
         ),
       ),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
+
   Future<void> showInstantTestNotification() async {
     await _plugin.show(
       998,
@@ -157,8 +161,7 @@ class PrayerNotificationService {
           importance: Importance.max,
           priority: Priority.high,
         ),
-      ),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      ),androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
     );
