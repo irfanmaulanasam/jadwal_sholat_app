@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:jadwal_sholat_app/features/prayer/helpers/hijr_date_helpers.dart';
+import 'package:jadwal_sholat_app/features/prayer/helpers/prayer_status_helper.dart';
 import 'package:jadwal_sholat_app/features/prayer/pages/monthy_prayer_page.dart';
 import 'package:jadwal_sholat_app/features/prayer/pages/travel_page.dart';
+import 'package:jadwal_sholat_app/features/prayer/widgets/prayer_tile.dart';
+import 'package:jadwal_sholat_app/features/prayer/widgets/prayer_widget_data_service.dart';
 import '../models/prayer_day.dart';
 import '../models/prayer_settings.dart';
 import '../services/prayer_api_service.dart'; 
@@ -16,17 +19,19 @@ class PrayerPage extends StatefulWidget {
 }
 
 class _PrayerPageState extends State<PrayerPage> {
+  final _widgetDataService = PrayerWidgetDataService();
   final _apiService = PrayerApiService();
   // final _cacheService = PrayerCacheService();
   final _settingsService = PrayerSettingsService();
   final _notificationService = PrayerNotificationService();
-
+  
   bool _loading = true;
   String? _error;
 
   PrayerSettings? _settings;
   List<PrayerDay> _days = [];
-  
+
+
   String _applyOffset(String time) {
     final offset = _settings?.minuteOffset ?? 0;
     final parts = time.split(':');
@@ -85,6 +90,7 @@ class _PrayerPageState extends State<PrayerPage> {
   Future<void> _initPage() async {
     await _notificationService.init();
     await _loadPrayerTimes();
+
   }
 
   Future<void> _loadPrayerTimes() async {
@@ -106,6 +112,10 @@ class _PrayerPageState extends State<PrayerPage> {
           day: today,
           isMale: settings.isMale,
           offsetMinutes: settings.minuteOffset,
+        );
+        await _widgetDataService.saveTodayWidgetData(
+          today: today,
+          settings: settings,
         );
       }
 
@@ -156,8 +166,18 @@ class _PrayerPageState extends State<PrayerPage> {
 
   @override
   Widget build(BuildContext context) {
+    
     final today = todayPrayer;
-
+    final status =
+      today == null || _settings == null
+        ? null
+      : PrayerStatusHelper.getStatus(
+          today,
+          _settings!.isMale,
+      );
+    final middayName = today == null ? 'Dzuhur' : getMiddayLabel(today);
+    bool isActive(String name) => status?.currentPrayerName == name;
+    bool isNext(String name) => status?.nextPrayerName == name;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Jadwal Sholat'),
@@ -215,91 +235,88 @@ class _PrayerPageState extends State<PrayerPage> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : today == null
-              ? const Center(child: Text('Jadwal belum tersedia'))
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    if (_error != null)
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Text(
-                            _error!,
-                            style: const TextStyle(color: Colors.orange),
-                          ),
+        ? const Center(child: CircularProgressIndicator())
+        : today == null
+            ? const Center(child: Text('Jadwal belum tersedia'))
+            : ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_todayTitle()}/Hijriah: ${HijriHelper.fromGregorian(DateTime.now())}',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  if (_error != null)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(color: Colors.orange),
                         ),
                       ),
-                    Text(
-                      'Jadwal Hari Ini',
-                      style: Theme.of(context).textTheme.headlineSmall,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${_todayTitle()}/Hijriah: ${HijriHelper.fromGregorian(DateTime.now())}',
-                      style: Theme.of(context).textTheme.titleMedium,
+                  const SizedBox(height: 12),
+                  PrayerTile(
+                    name: 'Subuh',
+                    time: _applyOffset(today.subuh),
+                    isActive: isActive('Subuh'),
+                    isNext: isNext('Subuh'),
+                  ),
+                  PrayerTile(
+                    name: 'Terbit',
+                    time: _applyOffset(today.terbit),
+                  ),
+                  PrayerTile(
+                    name: middayName,
+                    time: _applyOffset(today.dzuhur),
+                    isActive: isActive(middayName),
+                    isNext: isNext(middayName),
+                  ),
+                  PrayerTile(
+                    name: 'Ashar',
+                    time: _applyOffset(today.ashar),
+                    isActive: isActive('Ashar'),
+                    isNext: isNext('Ashar'),
+                  ),
+                  PrayerTile(
+                    name: 'Maghrib',
+                    time: _applyOffset(today.maghrib),
+                    isActive: isActive('Maghrib'),
+                    isNext: isNext('Maghrib'),
+                  ),
+                  PrayerTile(
+                    name: 'Isya',
+                    time: _applyOffset(today.isya),
+                    isActive: isActive('Isya'),
+                    isNext: isNext('Isya'),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Jadwal untuk:',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  Text(
+                    _settings == null
+                      ? '-'
+                      : '${_settings!.cityName}, ${_settings!.provinceName}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 12),
-                    _PrayerTile(name: 'Subuh', time: _applyOffset(today.subuh)),
-                    _PrayerTile(name: 'Terbit', time: _applyOffset(today.terbit)),
-                    _PrayerTile(name: getMiddayLabel(today), time: _applyOffset(today.dzuhur)),
-                    _PrayerTile(name: 'Ashar', time: _applyOffset(today.ashar)),
-                    _PrayerTile(name: 'Maghrib', time: _applyOffset(today.maghrib)),
-                    _PrayerTile(name: 'Isya', time: _applyOffset(today.isya)),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Jadwal untuk:',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    Text(
-                      _settings == null
-                        ? '-'
-                        : '${_settings!.cityName}, ${_settings!.provinceName}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Sumber jadwal: EQuran.id - Jadwal Shalat Indonesia',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    const Text(
-                      'Metode: jadwal kota/kabupaten',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                ),
-    );
-  }
-}
-
-
-class _PrayerTile extends StatelessWidget {
-  final String name;
-  final String time;
-
-  const _PrayerTile({
-    required this.name,
-    required this.time,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        title: Text(name),
-        trailing: Text(
-          time,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Sumber jadwal: EQuran.id - Jadwal Shalat Indonesia',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  const Text(
+                    'Metode: jadwal kota/kabupaten',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
     );
   }
 }

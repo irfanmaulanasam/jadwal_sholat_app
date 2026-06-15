@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../models/prayer_day.dart';
 import '../models/prayer_settings.dart';
 

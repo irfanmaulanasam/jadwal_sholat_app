@@ -116,6 +116,7 @@ class PrayerNotificationService {
           channelDescription: 'Channel untuk test notifikasi',
           importance: Importance.max,
           priority: Priority.high,
+          playSound: true,
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
@@ -136,6 +137,9 @@ class PrayerNotificationService {
           channelDescription: 'Channel untuk test notifikasi',
           importance: Importance.max,
           priority: Priority.high,
+          playSound: true,
+          enableVibration: true,
+          visibility: NotificationVisibility.public,
         ),
       ),
     );
@@ -151,33 +155,49 @@ class PrayerNotificationService {
       Duration(minutes: offsetMinutes),
     );
 
-    final notificationTime =
-        prayerTime.subtract(Duration(minutes: reminderMinutes));
+    final notificationTime = prayerTime.subtract(
+      Duration(minutes: reminderMinutes),
+    );
 
-    if (notificationTime.isBefore(DateTime.now())) {
+    final now = DateTime.now();
+
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'prayer_channel',
+        'Pengingat Sholat',
+        channelDescription: 'Notifikasi sebelum waktu sholat',
+        importance: Importance.max,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+        visibility: NotificationVisibility.public,
+      ),
+    );
+
+    if (notificationTime.isAfter(now)) {
+      await _plugin.zonedSchedule(
+        id,
+        'Pengingat Sholat',
+        '$name $reminderMinutes menit lagi',
+        tz.TZDateTime.from(notificationTime, tz.local),
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
       return;
     }
 
-    await _plugin.zonedSchedule(
-      id,
-      'Pengingat Sholat',
-      '$name $reminderMinutes menit lagi',
-      tz.TZDateTime.from(notificationTime, tz.local),
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'prayer_channel',
-          'Pengingat Sholat',
-          channelDescription: 'Notifikasi sebelum waktu sholat',
-          importance: Importance.max,
-          priority: Priority.high,
-        ),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-    );
+    if (prayerTime.isAfter(now)) {
+      await _plugin.show(
+        id,
+        'Pengingat Sholat',
+        '$name sudah dekat. Masuk waktu pukul ${_formatTime(prayerTime)}',
+        details,
+      );
+      return;
+    }
   }
-
   DateTime _parseTodayTime(String time) {
     final now = DateTime.now();
     final parts = time.split(':');
@@ -190,4 +210,53 @@ class PrayerNotificationService {
       int.parse(parts[1]),
     );
   }
+  Future<String> getPendingDebugText() async {
+    final pending = await _plugin.pendingNotificationRequests();
+
+    if (pending.isEmpty) {
+      return 'Tidak ada notifikasi terjadwal.';
+    }
+
+    return pending.map((item) {
+      return 'ID: ${item.id}\nTitle: ${item.title}\nBody: ${item.body}';
+    }).join('\n\n');
+  }
+  Future<void> showTestNotificationInMinutes({
+    required int minutes,
+  }) async {
+    final scheduledTime = DateTime.now().add(
+      Duration(minutes: minutes),
+    );
+
+    await _plugin.zonedSchedule(
+      1000 + minutes,
+      'Test Notification',
+      'Notif test $minutes menit',
+      tz.TZDateTime.from(
+        scheduledTime,
+        tz.local,
+      ),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'debug_channel',
+          'Debug Notification',
+          channelDescription: 'Debug Notification',
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+          enableVibration: true,
+          visibility: NotificationVisibility.public,
+        ),
+      ),
+      androidScheduleMode:
+          AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+}
+
+String _formatTime(DateTime time) {
+  return '${time.hour.toString().padLeft(2, '0')}:'
+      '${time.minute.toString().padLeft(2, '0')}';
 }
