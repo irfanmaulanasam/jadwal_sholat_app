@@ -118,3 +118,21 @@ Fokus saat ini adalah membuat aplikasi yang:
 bisa menampilkan jadwal dengan benar
 bisa memberi notifikasi sebelum waktu sholat
 tetap sederhana dan mudah dirawat
+
+## Roadmap
+
+✓ Onboarding
+✓ Kota/Kabupaten
+✓ Travel Mode
+✓ Jadwal Harian
+✓ Jadwal Bulanan
+✓ Tanggal Hijriah
+✓ Scheduled Notification
+✓ Android 15 Exact Alarm
+✓ Highlight Jumat
+✓ Minute Offset
+✓ Refactor PrayerTile
+
+🚧 Widget Home Screen
+🚧 Current Prayer Highlight
+🚧 Auto Refresh Widget
