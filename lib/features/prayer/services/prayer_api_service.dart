@@ -76,4 +76,27 @@ class PrayerApiService {
 
     return data.map((item) => item.toString()).toList();
   }
+  Future<String> fetchRawMonthlyPrayerResponse({
+    required String provinceName,
+    required String cityName,
+    required int month,
+    required int year,
+  }) async {
+    final uri = Uri.parse('https://equran.id/api/v2/shalat');
+
+    final response = await http.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'provinsi': provinceName,
+        'kabkota': cityName,
+        'bulan': month,
+        'tahun': year,
+      }),
+    );
+
+    return response.body;
+  }
 }

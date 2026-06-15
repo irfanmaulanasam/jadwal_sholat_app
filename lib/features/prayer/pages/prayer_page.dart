@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:jadwal_sholat_app/features/prayer/helpers/hijr_date_helpers.dart';
+import 'package:jadwal_sholat_app/features/prayer/pages/monthy_prayer_page.dart';
 import 'package:jadwal_sholat_app/features/prayer/pages/travel_page.dart';
-
 import '../models/prayer_day.dart';
 import '../models/prayer_settings.dart';
-import '../services/prayer_api_service.dart';
-// import '../services/prayer_cache_service.dart';  
+import '../services/prayer_api_service.dart'; 
 import '../services/prayer_notification_service.dart';
 import '../services/prayer_settings_service.dart';
 
@@ -143,8 +143,8 @@ class _PrayerPageState extends State<PrayerPage> {
     return _findTodayPrayer(_days);
   }
 
-  String getMiddayLabel() {
-    final isFriday = DateTime.now().weekday == DateTime.friday;
+  String getMiddayLabel(PrayerDay today) {
+    final isFriday = today.hari.toLowerCase() == 'jumat';
     final isMale = _settings?.isMale ?? true;
 
     if (isFriday && isMale) {
@@ -182,19 +182,23 @@ class _PrayerPageState extends State<PrayerPage> {
             icon: const Icon(Icons.travel_explore),
           ),
           IconButton(
-            tooltip: 'Test notifikasi langsung',
-            onPressed: () async {
-              await _notificationService.showInstantTestNotification();
-            },
-            icon: const Icon(Icons.notifications_active),
-          ),
+            tooltip: 'Jadwal bulanan',
+            onPressed: () {
+              final settings = _settings;
 
-          IconButton(
-            tooltip: 'Test notifikasi 10 detik',
-            onPressed: () async {
-              await _notificationService.showTestNotificationInSeconds(seconds: 10);
+              if (settings == null || _days.isEmpty) return;
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => MonthlyPrayerPage(
+                    days: _days,
+                    settings: settings,
+                  ),
+                ),
+              );
             },
-            icon: const Icon(Icons.timer),
+            icon: const Icon(Icons.calendar_month),
           ),
           IconButton(
             tooltip: 'Refresh',
@@ -233,13 +237,13 @@ class _PrayerPageState extends State<PrayerPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _todayTitle(),
+                      '${_todayTitle()}/Hijriah: ${HijriHelper.fromGregorian(DateTime.now())}',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 12),
                     _PrayerTile(name: 'Subuh', time: _applyOffset(today.subuh)),
                     _PrayerTile(name: 'Terbit', time: _applyOffset(today.terbit)),
-                    _PrayerTile(name: getMiddayLabel(), time: _applyOffset(today.dzuhur)),
+                    _PrayerTile(name: getMiddayLabel(today), time: _applyOffset(today.dzuhur)),
                     _PrayerTile(name: 'Ashar', time: _applyOffset(today.ashar)),
                     _PrayerTile(name: 'Maghrib', time: _applyOffset(today.maghrib)),
                     _PrayerTile(name: 'Isya', time: _applyOffset(today.isya)),
