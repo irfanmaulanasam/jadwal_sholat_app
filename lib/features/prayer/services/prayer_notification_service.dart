@@ -32,28 +32,32 @@ class PrayerNotificationService {
   Future<void> scheduleToday({
     required PrayerDay day,
     required bool isMale,
+    required int offsetMinutes,
   }) async {
     await _plugin.cancelAll();
 
     await _schedule(
       id: 1,
       name: 'Subuh',
-      time: day.fajr,
+      time: day.subuh,
       reminderMinutes: 10,
+      offsetMinutes: offsetMinutes,
     );
 
     await _schedule(
       id: 2,
       name: _middayName(isMale),
-      time: day.dhuhr,
+      time: day.dzuhur,
       reminderMinutes: _middayReminderMinutes(isMale),
+      offsetMinutes: offsetMinutes,
     );
 
     await _schedule(
       id: 3,
       name: 'Ashar',
-      time: day.asr,
+      time: day.ashar,
       reminderMinutes: 10,
+      offsetMinutes: offsetMinutes,
     );
 
     await _schedule(
@@ -61,13 +65,15 @@ class PrayerNotificationService {
       name: 'Maghrib',
       time: day.maghrib,
       reminderMinutes: 10,
+      offsetMinutes: offsetMinutes,
     );
 
     await _schedule(
       id: 5,
       name: 'Isya',
-      time: day.isha,
+      time: day.isya,
       reminderMinutes: 10,
+      offsetMinutes: offsetMinutes,
     );
   }
 
@@ -139,8 +145,12 @@ class PrayerNotificationService {
     required String name,
     required String time,
     required int reminderMinutes,
+    required int offsetMinutes,
   }) async {
-    final prayerTime = _parseTodayTime(time);
+    final prayerTime = _parseTodayTime(time).add(
+      Duration(minutes: offsetMinutes),
+    );
+
     final notificationTime =
         prayerTime.subtract(Duration(minutes: reminderMinutes));
 
@@ -161,7 +171,8 @@ class PrayerNotificationService {
           importance: Importance.max,
           priority: Priority.high,
         ),
-      ),androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
     );
