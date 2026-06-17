@@ -23,7 +23,6 @@ class _DebugNotificationPageState extends State<DebugNotificationPage> {
 
   Future<void> _testScheduled() async {
     await _notificationService.init();
-    await _notificationService.showTestNotificationInSeconds(seconds: 10);
 
     setState(() {
       _log = 'Scheduled notification dijadwalkan 10 detik.';

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -25,135 +26,101 @@ class PrayerNotificationService {
             AndroidFlutterLocalNotificationsPlugin>();
 
     await androidPlugin?.requestNotificationsPermission();
-
     await androidPlugin?.requestExactAlarmsPermission();
   }
 
-  Future<void> scheduleToday({
-    required PrayerDay day,
+  Future<void> scheduleUpcomingDays({
+    required List<PrayerDay> days,
     required bool isMale,
-    required int offsetMinutes,
+    int numberOfDays = 7,
   }) async {
     await _plugin.cancelAll();
 
-    await _schedule(
-      id: 1,
+    final today = DateTime.now();
+
+    final upcomingDays = days.where((day) {
+      final date = _parseDate(day.tanggalLengkap);
+      final cleanToday = DateTime(today.year, today.month, today.day);
+      return !date.isBefore(cleanToday);
+    }).take(numberOfDays);
+
+    int notificationId = 1;
+
+    for (final day in upcomingDays) {
+      await _schedulePrayerDay(
+        day: day,
+        isMale: isMale,
+        startId: notificationId,
+      );
+
+      notificationId += 10;
+    }
+    final pending =
+    await _plugin.pendingNotificationRequests();
+    
+    debugPrint(
+      'TOTAL SCHEDULED: ${pending.length}',
+    );
+  }
+
+  Future<void> _schedulePrayerDay({
+    required PrayerDay day,
+    required bool isMale,
+    required int startId,
+  }) async {
+    final isFriday = day.hari.toLowerCase() == 'jumat';
+    final middayName = isFriday && isMale ? 'Jumat' : 'Dzuhur';
+    final middayReminder = isFriday && isMale ? 30 : 10;
+
+    await _scheduleForDate(
+      id: startId,
       name: 'Subuh',
+      date: day.tanggalLengkap,
       time: day.subuh,
       reminderMinutes: 10,
-      offsetMinutes: offsetMinutes,
     );
 
-    await _schedule(
-      id: 2,
-      name: _middayName(isMale),
+    await _scheduleForDate(
+      id: startId + 1,
+      name: middayName,
+      date: day.tanggalLengkap,
       time: day.dzuhur,
-      reminderMinutes: _middayReminderMinutes(isMale),
-      offsetMinutes: offsetMinutes,
+      reminderMinutes: middayReminder,
     );
 
-    await _schedule(
-      id: 3,
+    await _scheduleForDate(
+      id: startId + 2,
       name: 'Ashar',
+      date: day.tanggalLengkap,
       time: day.ashar,
       reminderMinutes: 10,
-      offsetMinutes: offsetMinutes,
     );
 
-    await _schedule(
-      id: 4,
+    await _scheduleForDate(
+      id: startId + 3,
       name: 'Maghrib',
+      date: day.tanggalLengkap,
       time: day.maghrib,
       reminderMinutes: 10,
-      offsetMinutes: offsetMinutes,
     );
 
-    await _schedule(
-      id: 5,
+    await _scheduleForDate(
+      id: startId + 4,
       name: 'Isya',
+      date: day.tanggalLengkap,
       time: day.isya,
       reminderMinutes: 10,
-      offsetMinutes: offsetMinutes,
     );
   }
 
-  String _middayName(bool isMale) {
-    final isFriday = DateTime.now().weekday == DateTime.friday;
-
-    if (isFriday && isMale) {
-      return 'Jumat';
-    }
-
-    return 'Dzuhur';
-  }
-
-  int _middayReminderMinutes(bool isMale) {
-    final isFriday = DateTime.now().weekday == DateTime.friday;
-
-    if (isFriday && isMale) {
-      return 30;
-    }
-
-    return 10;
-  }
-
-  Future<void> showTestNotificationInSeconds({
-    required int seconds,
-  }) async {
-    final scheduledTime = DateTime.now().add(
-      Duration(seconds: seconds),
-    );
-
-    await _plugin.zonedSchedule(
-      999,
-      'Test Scheduled Notification',
-      'Kalau ini muncul, scheduled notification sudah jalan.',
-      tz.TZDateTime.from(scheduledTime, tz.local),
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'debug_channel',
-          'Debug Notification',
-          channelDescription: 'Channel untuk test notifikasi',
-          importance: Importance.max,
-          priority: Priority.high,
-          playSound: true,
-        ),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-    );
-  }
-
-  Future<void> showInstantTestNotification() async {
-    await _plugin.show(
-      998,
-      'Test Notifikasi Langsung',
-      'Kalau ini muncul, berarti permission dan channel aman.',
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'debug_channel',
-          'Debug Notification',
-          channelDescription: 'Channel untuk test notifikasi',
-          importance: Importance.max,
-          priority: Priority.high,
-          playSound: true,
-          enableVibration: true,
-          visibility: NotificationVisibility.public,
-        ),
-      ),
-    );
-  }
-  Future<void> _schedule({
+  Future<void> _scheduleForDate({
     required int id,
     required String name,
+    required String date,
     required String time,
     required int reminderMinutes,
-    required int offsetMinutes,
   }) async {
-    final prayerTime = _parseTodayTime(time).add(
-      Duration(minutes: offsetMinutes),
-    );
+    final prayerTime = _parsePrayerDateTime(date, time);
 
     final notificationTime = prayerTime.subtract(
       Duration(minutes: reminderMinutes),
@@ -195,32 +162,62 @@ class PrayerNotificationService {
         '$name sudah dekat. Masuk waktu pukul ${_formatTime(prayerTime)}',
         details,
       );
-      return;
     }
   }
-  DateTime _parseTodayTime(String time) {
-    final now = DateTime.now();
-    final parts = time.split(':');
+
+  DateTime _parsePrayerDateTime(String date, String time) {
+    final dateParts = date.split('-');
+
+    final year = int.parse(dateParts[0]);
+    final month = int.parse(dateParts[1]);
+    final day = int.parse(dateParts[2]);
+
+    final timeParts = time.split(':');
 
     return DateTime(
-      now.year,
-      now.month,
-      now.day,
-      int.parse(parts[0]),
-      int.parse(parts[1]),
+      year,
+      month,
+      day,
+      int.parse(timeParts[0]),
+      int.parse(timeParts[1]),
     );
   }
-  Future<String> getPendingDebugText() async {
-    final pending = await _plugin.pendingNotificationRequests();
 
-    if (pending.isEmpty) {
-      return 'Tidak ada notifikasi terjadwal.';
-    }
+  DateTime _parseDate(String date) {
+    final parts = date.split('-');
 
-    return pending.map((item) {
-      return 'ID: ${item.id}\nTitle: ${item.title}\nBody: ${item.body}';
-    }).join('\n\n');
+    return DateTime(
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+      int.parse(parts[2]),
+    );
   }
+
+  String _formatTime(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:'
+        '${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> showInstantTestNotification() async {
+    await _plugin.show(
+      998,
+      'Test Notifikasi Langsung',
+      'Kalau ini muncul, permission dan channel aman.',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'debug_channel',
+          'Debug Notification',
+          channelDescription: 'Channel untuk test notifikasi',
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+          enableVibration: true,
+          visibility: NotificationVisibility.public,
+        ),
+      ),
+    );
+  }
+
   Future<void> showTestNotificationInMinutes({
     required int minutes,
   }) async {
@@ -232,10 +229,7 @@ class PrayerNotificationService {
       1000 + minutes,
       'Test Notification',
       'Notif test $minutes menit',
-      tz.TZDateTime.from(
-        scheduledTime,
-        tz.local,
-      ),
+      tz.TZDateTime.from(scheduledTime, tz.local),
       const NotificationDetails(
         android: AndroidNotificationDetails(
           'debug_channel',
@@ -248,15 +242,21 @@ class PrayerNotificationService {
           visibility: NotificationVisibility.public,
         ),
       ),
-      androidScheduleMode:
-          AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
-}
 
-String _formatTime(DateTime time) {
-  return '${time.hour.toString().padLeft(2, '0')}:'
-      '${time.minute.toString().padLeft(2, '0')}';
+  Future<String> getPendingDebugText() async {
+    final pending = await _plugin.pendingNotificationRequests();
+
+    if (pending.isEmpty) {
+      return 'Tidak ada notifikasi terjadwal.';
+    }
+
+    return pending.map((item) {
+      return 'ID: ${item.id}\nTitle: ${item.title}\nBody: ${item.body}';
+    }).join('\n\n');
+  }
 }

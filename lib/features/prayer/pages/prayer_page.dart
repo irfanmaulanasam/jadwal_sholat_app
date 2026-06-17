@@ -93,7 +93,55 @@ class _PrayerPageState extends State<PrayerPage> {
     await _loadPrayerTimes();
 
   }
+  Future<void> _scheduleWidgetUpdatesForDays(
+    List<PrayerDay> days,
+  ) async {
+    final now = DateTime.now();
 
+    for (final day in days.take(7)) {
+      final times = [
+        day.subuh,
+        day.dzuhur,
+        day.ashar,
+        day.maghrib,
+        day.isya,
+      ];
+
+      for (final time in times) {
+        final dateTime = _parsePrayerDateTime(
+          day.tanggalLengkap,
+          time,
+        );
+
+        if (dateTime.isAfter(now)) {
+          await _widgetDataService.scheduleWidgetUpdate(
+            dateTime,
+          );
+        }
+      }
+    }
+  }
+
+  DateTime _parsePrayerDateTime(
+    String date,
+    String time,
+  ) {
+    final dateParts = date.split('-');
+
+    final year = int.parse(dateParts[0]);
+    final month = int.parse(dateParts[1]);
+    final day = int.parse(dateParts[2]);
+
+    final timeParts = time.split(':');
+
+    return DateTime(
+      year,
+      month,
+      day,
+      int.parse(timeParts[0]),
+      int.parse(timeParts[1]),
+    );
+  }
   Future<void> _loadPrayerTimes() async {
     try {
       final settings = await _settingsService.load();
@@ -108,11 +156,12 @@ class _PrayerPageState extends State<PrayerPage> {
 
       final today = _findTodayPrayer(freshDays);
       final hijriDate = await _hijrApiService.fetchTodayHijriDate();
+      await _scheduleWidgetUpdatesForDays(freshDays);
       if (today != null) {
-        await _notificationService.scheduleToday(
-          day: today,
+        await _notificationService.scheduleUpcomingDays(
+          days: freshDays,
           isMale: settings.isMale,
-          offsetMinutes: settings.minuteOffset,
+          numberOfDays: 7,
         );
 
         await _widgetDataService.saveTodayWidgetData(
@@ -185,6 +234,32 @@ class _PrayerPageState extends State<PrayerPage> {
       appBar: AppBar(
         title: const Text('Jadwal Sholat'),
         actions: [
+          IconButton(
+            tooltip: 'Lihat alarm',
+            icon: const Icon(Icons.bug_report),
+            onPressed: () async {
+              final text =
+                  await _notificationService.getPendingDebugText();
+
+              if (!context.mounted) return;
+
+              showDialog(
+                context: context,
+                builder: (_) => AlertDialog(
+                  title: const Text('Alarm Terjadwal'),
+                  content: SingleChildScrollView(
+                    child: SelectableText(text),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Tutup'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
           IconButton(
             tooltip: 'Mode perjalanan',
             onPressed: () async {

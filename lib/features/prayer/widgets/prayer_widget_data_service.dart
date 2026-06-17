@@ -9,6 +9,17 @@ class PrayerWidgetDataService {
   static const _channel = MethodChannel('prayer_widget_channel');
   final _hijriApiService = HijriApiService();
 
+  Future<void> scheduleWidgetUpdate(DateTime time) async {
+    try {
+      await _channel.invokeMethod(
+        'scheduleWidgetUpdate',
+        {
+          'triggerAt': time.millisecondsSinceEpoch,
+        },
+      );
+    } catch (_) {}
+  }
+
   Future<void> saveTodayWidgetData({
     required PrayerDay today,
     required PrayerSettings settings,
