@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:jadwal_sholat_app/features/prayer/helpers/hijr_date_helpers.dart';
 import 'package:jadwal_sholat_app/features/prayer/helpers/prayer_status_helper.dart';
 import 'package:jadwal_sholat_app/features/prayer/pages/monthy_prayer_page.dart';
 import 'package:jadwal_sholat_app/features/prayer/pages/travel_page.dart';
+import 'package:jadwal_sholat_app/features/prayer/services/hijri_api_service.dart';
 import 'package:jadwal_sholat_app/features/prayer/widgets/prayer_tile.dart';
 import 'package:jadwal_sholat_app/features/prayer/widgets/prayer_widget_data_service.dart';
 import '../models/prayer_day.dart';
@@ -21,12 +21,13 @@ class PrayerPage extends StatefulWidget {
 class _PrayerPageState extends State<PrayerPage> {
   final _widgetDataService = PrayerWidgetDataService();
   final _apiService = PrayerApiService();
-  // final _cacheService = PrayerCacheService();
+  final _hijrApiService = HijriApiService();
   final _settingsService = PrayerSettingsService();
   final _notificationService = PrayerNotificationService();
   
   bool _loading = true;
   String? _error;
+  String? _hijriDate;
 
   PrayerSettings? _settings;
   List<PrayerDay> _days = [];
@@ -106,13 +107,14 @@ class _PrayerPageState extends State<PrayerPage> {
       );
 
       final today = _findTodayPrayer(freshDays);
-
+      final hijriDate = await _hijrApiService.fetchTodayHijriDate();
       if (today != null) {
         await _notificationService.scheduleToday(
           day: today,
           isMale: settings.isMale,
           offsetMinutes: settings.minuteOffset,
         );
+
         await _widgetDataService.saveTodayWidgetData(
           today: today,
           settings: settings,
@@ -124,6 +126,7 @@ class _PrayerPageState extends State<PrayerPage> {
       setState(() {
         _settings = settings;
         _days = freshDays;
+        _hijriDate = hijriDate; 
         _error = null;
         _loading = false;
       });
@@ -243,8 +246,12 @@ class _PrayerPageState extends State<PrayerPage> {
                 children: [
                   const SizedBox(height: 4),
                   Text(
-                    '${_todayTitle()}/Hijriah: ${HijriHelper.fromGregorian(DateTime.now())}',
+                    _todayTitle(),
                     style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  Text(
+                    'Hijriah: ${_hijriDate ?? "-"}',
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   if (_error != null)
                     Card(

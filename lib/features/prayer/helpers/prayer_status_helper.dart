@@ -10,26 +10,12 @@ class PrayerStatusHelper {
     final now = DateTime.now();
 
     final prayers = [
-      (
-        'Subuh',
-        today.subuh,
-      ),
-      (
-        _middayName(isMale),
-        today.dzuhur,
-      ),
-      (
-        'Ashar',
-        today.ashar,
-      ),
-      (
-        'Maghrib',
-        today.maghrib,
-      ),
-      (
-        'Isya',
-        today.isya,
-      ),
+      ('Subuh', today.subuh),
+      ('Dhuha', today.dhuha),
+      (_middayName(isMale), today.dzuhur),
+      ('Ashar', today.ashar),
+      ('Maghrib', today.maghrib),
+      ('Isya', today.isya),
     ];
 
     final prayerTimes = prayers.map((prayer) {
