@@ -19,6 +19,20 @@ class PrayerWidgetDataService {
       );
     } catch (_) {}
   }
+  Future<void> saveWidgetUpdateTriggers(
+    List<DateTime> times,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final raw = times
+        .map((time) => time.millisecondsSinceEpoch.toString())
+        .join(',');
+
+    await prefs.setString(
+      'widget_update_triggers',
+      raw,
+    );
+  }
 
   Future<void> saveTodayWidgetData({
     required PrayerDay today,

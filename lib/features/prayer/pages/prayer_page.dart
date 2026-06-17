@@ -93,10 +93,12 @@ class _PrayerPageState extends State<PrayerPage> {
     await _loadPrayerTimes();
 
   }
+  
   Future<void> _scheduleWidgetUpdatesForDays(
     List<PrayerDay> days,
   ) async {
     final now = DateTime.now();
+    final scheduledTimes = <DateTime>[];
 
     for (final day in days.take(7)) {
       final times = [
@@ -114,12 +116,18 @@ class _PrayerPageState extends State<PrayerPage> {
         );
 
         if (dateTime.isAfter(now)) {
+          scheduledTimes.add(dateTime);
+
           await _widgetDataService.scheduleWidgetUpdate(
             dateTime,
           );
         }
       }
     }
+
+    await _widgetDataService.saveWidgetUpdateTriggers(
+      scheduledTimes,
+    );
   }
 
   DateTime _parsePrayerDateTime(
