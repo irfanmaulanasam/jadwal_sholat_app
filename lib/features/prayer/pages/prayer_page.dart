@@ -161,25 +161,40 @@ class _PrayerPageState extends State<PrayerPage> {
         month: now.month,
         year: now.year,
       );
+      
 
-      final today = _findTodayPrayer(freshDays);
-      final hijriDate = await _hijrApiService.fetchTodayHijriDate();
-      await _scheduleWidgetUpdatesForDays(freshDays);
-      if (today != null) {
-        await _notificationService.scheduleUpcomingDays(
-          days: freshDays,
-          isMale: settings.isMale,
-          numberOfDays: 7,
-        );
+      String? hijriDate;
 
-        await _widgetDataService.saveTodayWidgetData(
-          today: today,
-          settings: settings,
-        );
+      try {
+        hijriDate = await _hijrApiService.fetchTodayHijriDate();
+      } catch (_) {
+        hijriDate = '-';
       }
 
-      if (!mounted) return;
+      final today = _findTodayPrayer(freshDays);
 
+      if (today != null) {
+        try {
+          await _notificationService.scheduleUpcomingDays(
+            days: freshDays,
+            isMale: settings.isMale,
+            numberOfDays: 7,
+          );
+        } catch (e) {
+          debugPrint('Notification error: $e');
+        }
+
+        try {
+          await _widgetDataService.saveTodayWidgetData(
+            today: today,
+            settings: settings,
+          );
+
+          await _scheduleWidgetUpdatesForDays(freshDays);
+        } catch (e) {
+          debugPrint('Widget error: $e');
+        }
+      }
       setState(() {
         _settings = settings;
         _days = freshDays;
@@ -322,9 +337,16 @@ class _PrayerPageState extends State<PrayerPage> {
       ),
       body: _loading
         ? const Center(child: CircularProgressIndicator())
-        : today == null
-            ? const Center(child: Text('Jadwal belum tersedia'))
-            : ListView(
+        : _error != null
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(_error!),
+                ),
+              )
+            : today == null
+                ? const Center(child: Text('Jadwal belum tersedia'))
+                : ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
                   const SizedBox(height: 4),
