@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -36,11 +37,12 @@ class PrayerNotificationService {
   }) async {
     await _plugin.cancelAll();
 
+    final debugItems = <String>[];
     final today = DateTime.now();
+    final cleanToday = DateTime(today.year, today.month, today.day);
 
     final upcomingDays = days.where((day) {
       final date = _parseDate(day.tanggalLengkap);
-      final cleanToday = DateTime(today.year, today.month, today.day);
       return !date.isBefore(cleanToday);
     }).take(numberOfDays);
 
@@ -51,22 +53,27 @@ class PrayerNotificationService {
         day: day,
         isMale: isMale,
         startId: notificationId,
+        debugItems: debugItems,
       );
 
       notificationId += 10;
     }
-    final pending =
-    await _plugin.pendingNotificationRequests();
-    
-    debugPrint(
-      'TOTAL SCHEDULED: ${pending.length}',
+
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setStringList(
+      'debug_scheduled_notifications',
+      debugItems,
     );
+
+    debugPrint('TOTAL SAVED ALARM DEBUG: ${debugItems.length}');
   }
 
   Future<void> _schedulePrayerDay({
     required PrayerDay day,
     required bool isMale,
     required int startId,
+    required List<String> debugItems,
   }) async {
     final isFriday = day.hari.toLowerCase() == 'jumat';
     final middayName = isFriday && isMale ? 'Jumat' : 'Dzuhur';
@@ -78,6 +85,7 @@ class PrayerNotificationService {
       date: day.tanggalLengkap,
       time: day.subuh,
       reminderMinutes: 10,
+      debugItems: debugItems,
     );
 
     await _scheduleForDate(
@@ -86,6 +94,7 @@ class PrayerNotificationService {
       date: day.tanggalLengkap,
       time: day.dzuhur,
       reminderMinutes: middayReminder,
+      debugItems: debugItems,
     );
 
     await _scheduleForDate(
@@ -94,6 +103,7 @@ class PrayerNotificationService {
       date: day.tanggalLengkap,
       time: day.ashar,
       reminderMinutes: 10,
+      debugItems: debugItems,
     );
 
     await _scheduleForDate(
@@ -102,6 +112,7 @@ class PrayerNotificationService {
       date: day.tanggalLengkap,
       time: day.maghrib,
       reminderMinutes: 10,
+      debugItems: debugItems,
     );
 
     await _scheduleForDate(
@@ -110,6 +121,7 @@ class PrayerNotificationService {
       date: day.tanggalLengkap,
       time: day.isya,
       reminderMinutes: 10,
+      debugItems: debugItems,
     );
   }
 
@@ -119,9 +131,9 @@ class PrayerNotificationService {
     required String date,
     required String time,
     required int reminderMinutes,
+    required List<String> debugItems,
   }) async {
     final prayerTime = _parsePrayerDateTime(date, time);
-
     final notificationTime = prayerTime.subtract(
       Duration(minutes: reminderMinutes),
     );
@@ -142,6 +154,10 @@ class PrayerNotificationService {
     );
 
     if (notificationTime.isAfter(now)) {
+      debugItems.add(
+        '$name | notif ${_formatTime(notificationTime)} | sholat ${_formatTime(prayerTime)} | ${notificationTime.toIso8601String()}',
+      );
+
       await _plugin.zonedSchedule(
         id,
         'Pengingat Sholat',
@@ -152,10 +168,15 @@ class PrayerNotificationService {
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
       );
+
       return;
     }
 
     if (prayerTime.isAfter(now)) {
+      debugItems.add(
+        '$name | notif langsung | sholat ${_formatTime(prayerTime)} | ${DateTime.now().toIso8601String()}',
+      );
+
       await _plugin.show(
         id,
         'Pengingat Sholat',
@@ -249,14 +270,16 @@ class PrayerNotificationService {
   }
 
   Future<String> getPendingDebugText() async {
-    final pending = await _plugin.pendingNotificationRequests();
+    final prefs = await SharedPreferences.getInstance();
 
-    if (pending.isEmpty) {
-      return 'Tidak ada notifikasi terjadwal.';
+    final items =
+        prefs.getStringList('debug_scheduled_notifications') ?? [];
+
+    if (items.isEmpty) {
+      return 'Belum ada data alarm tersimpan.';
     }
 
-    return pending.map((item) {
-      return 'ID: ${item.id}\nTitle: ${item.title}\nBody: ${item.body}';
-    }).join('\n\n');
+    return 'Total alarm tersimpan: ${items.length}\n\n'
+        '${items.join('\n')}';
   }
 }

@@ -42,6 +42,28 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                 R.layout.prayer_widget
             )
 
+            val launchIntent =
+                context.packageManager
+                    .getLaunchIntentForPackage(
+                        context.packageName
+                    )
+
+            if (launchIntent != null) {
+                val pendingIntent =
+                    android.app.PendingIntent.getActivity(
+                        context,
+                        0,
+                        launchIntent,
+                        android.app.PendingIntent.FLAG_UPDATE_CURRENT or
+                            android.app.PendingIntent.FLAG_IMMUTABLE
+                    )
+
+                views.setOnClickPendingIntent(
+                    R.id.widget_root,
+                    pendingIntent
+                )
+            }
+
             views.setTextViewText(R.id.hijri_date, hijriDate)
             views.setTextViewText(R.id.current_name, currentName.uppercase())
             views.setTextViewText(R.id.current_time, currentTime)

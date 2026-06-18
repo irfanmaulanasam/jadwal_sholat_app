@@ -6,35 +6,30 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.MethodChannel.Result
 
 class MainActivity : FlutterActivity() {
-
     private val channelName = "prayer_widget_channel"
 
-    override fun configureFlutterEngine(
-        flutterEngine: FlutterEngine
-    ) {
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             channelName
-        ).setMethodCallHandler { call, result ->
-
+        ).setMethodCallHandler { call: MethodCall, result: Result ->
             when (call.method) {
-
                 "updatePrayerWidget" -> {
                     updatePrayerWidget()
                     result.success(true)
                 }
 
                 "scheduleWidgetUpdate" -> {
-                    val triggerAt =
-                        call.argument<Long>("triggerAt")
+                    val triggerAt = call.argument<Long>("triggerAt")
 
                     if (triggerAt != null) {
                         scheduleWidgetUpdate(triggerAt)
@@ -48,49 +43,45 @@ class MainActivity : FlutterActivity() {
                     }
                 }
 
-                else -> {
-                    result.notImplemented()
-                }
+                else -> result.notImplemented()
             }
         }
     }
 
     private fun updatePrayerWidget() {
+        val context: Context = applicationContext
 
         val appWidgetManager =
-            AppWidgetManager.getInstance(this)
+            AppWidgetManager.getInstance(context)
 
         val componentName =
             ComponentName(
-                this,
+                context,
                 PrayerWidgetProvider::class.java
             )
 
         val appWidgetIds =
-            appWidgetManager.getAppWidgetIds(
-                componentName
-            )
+            appWidgetManager.getAppWidgetIds(componentName)
 
         for (appWidgetId in appWidgetIds) {
             PrayerWidgetProvider.updateWidget(
-                this,
+                context,
                 appWidgetManager,
                 appWidgetId
             )
         }
     }
 
-    private fun scheduleWidgetUpdate(
-        triggerAt: Long
-    ) {
+    private fun scheduleWidgetUpdate(triggerAt: Long) {
+        val context: Context = applicationContext
 
         val alarmManager =
-            getSystemService(
+            context.getSystemService(
                 Context.ALARM_SERVICE
             ) as AlarmManager
 
         val intent = Intent(
-            this,
+            context,
             PrayerWidgetUpdateReceiver::class.java
         )
 
@@ -99,11 +90,11 @@ class MainActivity : FlutterActivity() {
 
         val pendingIntent =
             PendingIntent.getBroadcast(
-                this,
+                context,
                 requestCode,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or
-                        PendingIntent.FLAG_IMMUTABLE
+                    PendingIntent.FLAG_IMMUTABLE
             )
 
         alarmManager.setExactAndAllowWhileIdle(

@@ -62,9 +62,11 @@ class MonthlyPrayerPage extends StatelessWidget {
               MediaQuery.of(context).padding.bottom + 20,
             ),
             child: DataTable(
-            headingRowHeight: 40,
-            dataRowMinHeight: 36,
-            dataRowMaxHeight: 42,
+            columnSpacing: 12,
+            horizontalMargin: 8,
+            headingRowHeight: 32,
+            dataRowMinHeight: 30,
+            dataRowMaxHeight: 34,
             columns: const [
               DataColumn(label: Text('Tgl')),
               DataColumn(label: Text('Hari')),
@@ -80,17 +82,18 @@ class MonthlyPrayerPage extends StatelessWidget {
               return DataRow(
                 selected: isToday,
                 cells: [
-                  DataCell(Text(day.tanggal.toString())),
-                  DataCell(Text(day.hari)),
-                  DataCell(Text(_applyOffset(day.subuh))),
+                  DataCell(Text(day.tanggal.toString(),style: const TextStyle(fontSize: 11))),
+                  DataCell(Text(day.hari, style: const TextStyle(fontSize: 11))),
+                  DataCell(Text(_applyOffset(day.subuh), style: const TextStyle(fontSize: 11))),
                   DataCell(
                     Text(
                       '${_middayLabel(day)} ${_applyOffset(day.dzuhur)}',
+                      style: const TextStyle(fontSize: 11)
                     ),
                   ),
-                  DataCell(Text(_applyOffset(day.ashar))),
-                  DataCell(Text(_applyOffset(day.maghrib))),
-                  DataCell(Text(_applyOffset(day.isya))),
+                  DataCell(Text(_applyOffset(day.ashar), style: const TextStyle(fontSize: 11))),
+                  DataCell(Text(_applyOffset(day.maghrib), style: const TextStyle(fontSize: 11))),
+                  DataCell(Text(_applyOffset(day.isya), style: const TextStyle(fontSize: 11))),
                 ],
               );
             }).toList(),

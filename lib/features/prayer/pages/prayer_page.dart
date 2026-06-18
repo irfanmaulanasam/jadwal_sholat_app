@@ -255,32 +255,57 @@ class _PrayerPageState extends State<PrayerPage> {
     bool isNext(String name) => status?.nextPrayerName == name;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Jadwal Sholat'),
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/images/logo_header.png', width: 28, height: 28,
+            ),
+            const SizedBox(width: 8),
+            const Text('Jadwal Sholat'),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'Lihat alarm',
             icon: const Icon(Icons.bug_report),
             onPressed: () async {
-              final text =
-                  await _notificationService.getPendingDebugText();
+              try {
+                final text = await _notificationService.getPendingDebugText();
 
-              if (!context.mounted) return;
+                if (!context.mounted) return;
 
-              showDialog(
-                context: context,
-                builder: (_) => AlertDialog(
-                  title: const Text('Alarm Terjadwal'),
-                  content: SingleChildScrollView(
-                    child: SelectableText(text),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Tutup'),
+                showDialog(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: const Text('Alarm Terjadwal'),
+                    content: SingleChildScrollView(
+                      child: SelectableText(text),
                     ),
-                  ],
-                ),
-              );
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Tutup'),
+                      ),
+                    ],
+                  ),
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+
+                showDialog(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: const Text('Debug Error'),
+                    content: SelectableText(e.toString()),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Tutup'),
+                      ),
+                    ],
+                  ),
+                );
+              }
             },
           ),
           IconButton(
