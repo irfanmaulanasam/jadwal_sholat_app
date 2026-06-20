@@ -3,6 +3,7 @@ import 'package:jadwal_sholat_app/features/prayer/helpers/prayer_status_helper.d
 import 'package:jadwal_sholat_app/features/prayer/pages/monthy_prayer_page.dart';
 import 'package:jadwal_sholat_app/features/prayer/pages/travel_page.dart';
 import 'package:jadwal_sholat_app/features/prayer/services/hijri_api_service.dart';
+import 'package:jadwal_sholat_app/features/prayer/services/native_prayer_alarm_service.dart';
 import 'package:jadwal_sholat_app/features/prayer/widgets/prayer_tile.dart';
 import 'package:jadwal_sholat_app/features/prayer/widgets/prayer_widget_data_service.dart';
 import '../models/prayer_day.dart';
@@ -24,7 +25,7 @@ class _PrayerPageState extends State<PrayerPage> {
   final _hijrApiService = HijriApiService();
   final _settingsService = PrayerSettingsService();
   final _notificationService = PrayerNotificationService();
-  
+  final _nativeAlarmService = NativePrayerAlarmService();
   bool _loading = true;
   String? _error;
   String? _hijriDate;
@@ -91,7 +92,6 @@ class _PrayerPageState extends State<PrayerPage> {
   Future<void> _initPage() async {
     await _notificationService.init();
     await _loadPrayerTimes();
-
   }
   
   Future<void> _scheduleWidgetUpdatesForDays(
@@ -175,7 +175,7 @@ class _PrayerPageState extends State<PrayerPage> {
 
       if (today != null) {
         try {
-          await _notificationService.scheduleUpcomingDays(
+          await _nativeAlarmService.scheduleUpcomingDays(
             days: freshDays,
             isMale: settings.isMale,
             numberOfDays: 7,
@@ -257,11 +257,11 @@ class _PrayerPageState extends State<PrayerPage> {
       appBar: AppBar(
         title: Row(
           children: [
-            Image.asset(
-              'assets/images/logo_header.png', width: 28, height: 28,
+            Image.asset('assets/images/logo_header.png', width: 24, height: 24),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text("Jadwal Sholat"),
             ),
-            const SizedBox(width: 8),
-            const Text('Jadwal Sholat'),
           ],
         ),
         actions: [
